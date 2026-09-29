@@ -1,0 +1,10 @@
+{
+  "instances": [
+    {
+      "name": "instancia-1",
+      "instance_id": "COLE_O_ID",
+      "instance_token": "COLE_O_TOKEN_DA_INSTANCIA",
+      "client_token": "COLE_O_CLIENT_TOKEN"
+    }
+  ]
+}
