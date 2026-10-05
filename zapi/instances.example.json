@@ -2,7 +2,8 @@
   "_comentario": [
     "Copie para zapi/instances.json e troque os placeholders. Sem token real aqui: o arquivo vai para o Git.",
     "O servidor so le 'instances'. Cada item precisa de instance_id, instance_token e client_token; sem um deles, e ignorado. 'name' e apelido.",
-    "No /whatscheck a lista e embaralhada. Tenta uma a uma (pausa de 0,5 a 1 s). A primeira com HTTP 200 define exists. Nenhuma: erro 503."
+    "No /whatscheck a lista e embaralhada uma vez por pedido. A primeira com HTTP 200 define exists; se falhar, tenta a seguinte. Nenhuma: erro 503.",
+    "Com lista de telefones, os numeros giram essa ordem sorteada em loop: sorteio (B,C,D,A) e 6 numeros = B,C,D,A,B,C. A pausa de 0,5 a 1 s vale para cada chamada."
   ],
   "instances": [
     {

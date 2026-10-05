@@ -27,7 +27,7 @@ Ambiente Python: um **venv só para o telecheck-** (não uses conda `hypy` nem o
 O **telecheck-** é um **servidor HTTP** (`servidor.py` na raiz):
 
 - Fica **à escuta** o dia todo (enquanto o Windows estiver ligado).
-- **Antes** de `/whatscheck`, `/telcheck` e `/lookup`, valida o número com `number_check.py` (mesma lógica de `format_number` do tel_app). Número inválido → erro JSON, **sem** chamada externa.
+- **Antes** de `/whatscheck`, `/telcheck`, `/lookup` e `/override/request`, valida o número com `number_check.py` (DDD atribuído, fixo 2–5, celular 9 + 6–9). Número que não pode ser real → erro JSON, **sem** chamada externa e **sem** avisar a gestora.
 - Se o programa falhar de forma inesperada, **todos** os endpoints devolvem `{"error": true, "message": "Erro no programa: …"}`.
 - Escuta em `0.0.0.0` (toda a LAN), **não** só em `127.0.0.1`.
 
@@ -357,8 +357,9 @@ Não uses ngrok nem “expor IP público” para isto.
 | Só funciona neste PC | `--host 127.0.0.1` em vez de `0.0.0.0` |
 | Funcionava ontem, hoje não | DHCP mudou o IP deste Windows |
 | Lookup falha, `/health` ok | `config.env` em falta ou hlr-lookups.com inacessível **deste** Windows |
-| `Numero invalido` | `phone` não passou em `number_check.py`; Z-API/HLR **não** foram chamados |
-| `DDD invalido` | número com 8/9 dígitos sem `&ddd=XX` |
+| `Numero invalido…` | `phone` não passou em `number_check.py`; Z-API/HLR **não** foram chamados. A mensagem diz qual regra falhou |
+| `DDD invalido` | o `&ddd=` não tem 2 dígitos |
+| `DDD inexistente no Brasil` | o DDD tem 2 dígitos mas não é atribuído (ex.: 20, 36, 90) |
 | `Erro no programa: …` | falha inesperada; o corpo JSON é o mesmo em todos os endpoints |
 | `Nenhuma instancia esta ativa ou ZAPI nao respode` | nenhuma instância Z-API deu HTTP 200 |
 | PowerShell: “execution of scripts is disabled” | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |

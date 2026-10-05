@@ -8,7 +8,11 @@ O servidor escuta na LAN (ex.: `http://192.168.1.50:8080`). Código: `servidor.p
 
 ## Validação do número (antes de qualquer endpoint)
 
-**Nenhum** endpoint que recebe telefone chama Z-API ou hlr-lookups sem passar primeiro pela lógica de `number_check.py` (a mesma de `_Archive/PycharmProjects/tel_app/number_check.py` → `format_number`).
+**Nenhum** endpoint que recebe telefone chama Z-API ou hlr-lookups sem passar primeiro pelo `number_check.py`. O `/override/request` também não: não se acorda a gestora por um número que não pode existir.
+
+Esta é a **primeira barreira** e é de graça: só análise estática, sem rede. O objetivo é recusar aqui tudo o que **não pode ser real**, para não gastar chamada paga nem pedido de liberação com número digitado errado.
+
+As faixas vêm do plano de numeração brasileiro do **libphonenumber** do Google (`PhoneNumberMetadata.xml`, `<territory id="BR">`, tags `fixedLine` e `mobile`).
 
 Query:
 
@@ -16,41 +20,118 @@ Query:
 ?phone=85996533131
 ?phone=5585996533131
 ?phone=996533131&ddd=85
+?phone=5585996533131,5585988887777
+?phone=5585996533131&phone=5585988887777
 ```
 
 | Parâmetro | Uso |
 | --- | --- |
-| `phone` | Número (com ou sem máscara, com ou sem DDI 55) |
-| `ddd` | Obrigatório só se o número tiver **8 ou 9 dígitos** (sem DDD) |
+| `phone` | Número (com ou sem máscara, com ou sem DDI 55). Em `/whatscheck` e `/telcheck` aceita vários, por vírgula ou repetindo `phone=` |
+| `ddd` | Obrigatório só se o número tiver **8 ou 9 dígitos** (sem DDD). Vale para todos os números do pedido |
 
-Regras (depois de tirar tudo o que não é dígito):
+### O que é um número válido no Brasil
 
-- **10 dígitos** e não começa por `9` → fixo com DDD → válido (`55` + número).
-- **11 dígitos** e o 3.º dígito é `9` → celular com DDD → válido (`55` + número).
-- Já vem com DDI **55** (12 ou 13 dígitos) → corta o `55` e aplica as regras acima.
-- **8 dígitos** a começar por 6–9 → acrescenta o `9` do celular; precisa de `ddd` com 2 dígitos.
-- **9 dígitos** a começar por `9` → precisa de `ddd` com 2 dígitos.
-- Qualquer outro comprimento/padrão → inválido.
+Depois de tirar tudo o que não é dígito, o número tem de ser `55` + **DDD** + **parte local**:
 
-Se a validação falhar, o endpoint **para**. Não há chamada externa. Resposta:
+| Parte | Regra |
+| --- | --- |
+| DDD | 2 dígitos, e só os **67 códigos realmente atribuídos** |
+| Fixo | 8 dígitos, o primeiro de **2 a 5** |
+| Celular | 9 dígitos: o **9** do nono dígito, e depois **6, 7, 8 ou 9** |
+
+Os DDDs aceitos:
+
+```
+11 12 13 14 15 16 17 18 19   21 22 24 27 28   31 32 33 34 35 37 38
+41 42 43 44 45 46 47 48 49   51 53 54 55      61 62 63 64 65 66 67 68 69
+71 73 74 75 77 79            81 82 83 84 85 86 87 88 89
+91 92 93 94 95 96 97 98 99
+```
+
+Não existem, entre outros, **20, 23, 25, 26, 29, 30, 36, 39, 40, 50, 52, 56–60, 70, 72, 76, 78, 80 e 90**. Um `(20) 3333-4444` é recusado sem gastar nada.
+
+### Como o número chega
+
+| Dígitos recebidos | Tratamento |
+| --- | --- |
+| 12 ou 13 começando por `55` | Corta o DDI e aplica as regras abaixo |
+| 10 ou 11 | Os 2 primeiros são o DDD; o resto é a parte local |
+| 8 ou 9 | É tudo parte local; o DDD vem do `ddd=` ou é o **85** |
+| Qualquer outro comprimento | Inválido |
+
+Depois disso, **parte local de 8 dígitos começada em 6–9** é celular anterior ao nono dígito (o fixo nunca passa de 5) e ganha o `9` na frente, como fez a Anatel. Isso vale **com e sem DDD**, porque base antiga guarda os dois formatos: `8593334444` e `93334444&ddd=85` dão os dois `5585993334444`.
+
+O `55` da frente só é tratado como DDI quando o que sobra tem tamanho de número nacional. Por isso `5533331234` é lido como o **DDD 55** (Santa Maria), e não como DDI + 8 dígitos.
+
+### Resposta quando falha
+
+Com **um** número, o endpoint **para** e não há chamada externa. HTTP **400**:
 
 ```json
 {
   "error": true,
-  "message": "Numero invalido"
+  "message": "Numero invalido: celular comeca com 9 seguido de 6, 7, 8 ou 9"
 }
 ```
 
-HTTP **400**. Se faltar DDD quando o número não tem DDD:
+A mensagem diz o que está errado, para a operadora corrigir sem adivinhar:
 
-```json
-{
-  "error": true,
-  "message": "DDD invalido"
-}
-```
+| Mensagem | Quando |
+| --- | --- |
+| `Numero invalido` | Sem dígito nenhum |
+| `Numero invalido: precisa de 8 a 11 digitos, ou 12 a 13 com o 55` | Comprimento impossível |
+| `Numero invalido: fixo comeca com 2, 3, 4 ou 5` | 8 dígitos locais fora da faixa de fixo |
+| `Numero invalido: celular comeca com 9 seguido de 6, 7, 8 ou 9` | 9 dígitos locais fora da faixa de celular |
+| `DDD invalido` | O `ddd=` não tem 2 dígitos |
+| `DDD inexistente no Brasil` | O DDD tem 2 dígitos, mas não é um dos 67 |
 
 O campo `phone` devolvido nos sucessos é sempre o número já normalizado (DDI 55, só dígitos).
+
+### Onde isto é mais restrito que o libphonenumber
+
+Dois pontos, de propósito, porque a Anatel não atribui essas faixas e o objetivo é barrar o que não pode ser real:
+
+1. **Celular `9` seguido de 0 a 5.** O libphonenumber aceita o `9` seguido de qualquer dígito; a faixa móvel real começa em 6. Para afrouxar, troque `CELULAR_RE` por `r"^9\d{8}$"`.
+2. **Fixo de 8 dígitos começando por `7`.** Era o trunking da Nextel (SME), desligado em 2018. Para aceitar, use `r"^[2-57]\d{7}$"` em `FIXO_RE`.
+
+Fora destes dois casos, a validação aceita exatamente o mesmo conjunto que o libphonenumber: nunca recusa um número que ele considere real.
+
+---
+
+## Lista de telefones (`/whatscheck` e `/telcheck`)
+
+Os dois endpoints aceitam **N números por pedido**, por vírgula (`phone=a,b`) ou repetindo o parâmetro (`phone=a&phone=b`). Espaços em volta de cada número são ignorados; valores vazios são descartados.
+
+Regras:
+
+1. Cada número passa pela mesma validação de `number_check.py`, na ordem recebida.
+2. Com **um** número, a resposta e os códigos HTTP são os de sempre (compatibilidade).
+3. Com **dois ou mais**, a resposta é HTTP **200** com `count` e `results`, na ordem recebida.
+4. Um item com erro **não** derruba o lote. Ele leva o próprio `error` / `message` e os outros seguem.
+5. Item que não passou na validação vem com `input` (o valor enviado) em vez de `phone`, e **não** gasta chamada externa.
+6. `count` é sempre igual à quantidade de telefones enviados.
+
+Derrubam o pedido inteiro apenas:
+
+| Situação | HTTP |
+| --- | --- |
+| `phone` ausente ou vazio | 400 `Numero invalido` |
+| Nenhuma instância Z-API configurada (`/whatscheck`) | 503 |
+
+Formato:
+
+```json
+{
+  "count": 3,
+  "results": [
+    { "phone": "5585996533131", "exists": true },
+    { "phone": "5585988887777", "exists": false },
+    { "input": "123", "error": true, "message": "Numero invalido" }
+  ]
+}
+```
+
+`/lookup` continua a receber **um** número por pedido.
 
 ---
 
@@ -134,22 +215,25 @@ Header: Client-Token: {client_token}
 
 ### Fluxo
 
-1. Validar `phone` / `ddd` (`number_check.py`). Se inválido → erro 400, **não** chama a Z-API.
+1. Validar `phone` / `ddd` (`number_check.py`). Com um número só, inválido → erro 400 e **não** chama a Z-API. Em lista, o item inválido fica marcado e os outros seguem.
 2. Ler `zapi/instances.json` e montar a lista de instâncias válidas.
-3. Se a lista estiver vazia, responder como se nenhuma instância tivesse funcionado (passo 8).
-4. **Embaralhar** a lista (ordem aleatória). Não usar sempre a primeira.
-5. Percorrer a lista. Para **cada** instância:
+3. Se a lista estiver vazia, responder como se nenhuma instância tivesse funcionado (passo 9).
+4. **Embaralhar** a lista **uma única vez por pedido**. Essa ordem sorteada vale para todos os números do pedido.
+5. Cada número começa na instância **seguinte** à do número anterior, girando a ordem em loop. Sorteio `(B, C, D, A)` com 6 números dá `B, C, D, A, B, C`. Não há segundo embaralhamento.
+6. Para cada tentativa de um número:
    - **Antes** de chamar a Z-API, pausar um tempo **aleatório entre 0,5 e 1,0 segundo**.
    - Chamar `phone-exists` com essa instância.
    - Se a HTTP for **200**: parar. Devolver o valor da Z-API (`exists`: `true` ou `false`).
-   - Se a HTTP for **qualquer outro código** (ou timeout, ou erro de rede): **não** devolver esse erro ao cliente. Escolher a **próxima** instância da lista já embaralhada e repetir (pausa + chamada).
-6. Não reutilizar, no mesmo pedido, uma instância que já falhou.
-7. A primeira instância que responder **200** ganha. O corpo dessa resposta é o resultado.
-8. Se **nenhuma** instância der HTTP 200, devolver exatamente:
+   - Se a HTTP for **qualquer outro código** (ou timeout, ou erro de rede): **não** devolver esse erro ao cliente. Passar para a **próxima** instância da ordem sorteada e repetir (pausa + chamada).
+7. Dentro do mesmo número não se repete instância que já falhou. O failover não muda onde o número seguinte começa: cada número avança exatamente uma posição em relação ao anterior.
+8. A primeira instância que responder **200** ganha. O corpo dessa resposta é o resultado.
+9. Se **nenhuma** instância der HTTP 200, devolver exatamente:
 
 ```
 Nenhuma instancia esta ativa ou ZAPI nao respode
 ```
+
+Num lote, isso vale por número: o número que esgotar todas as instâncias fica com esse `message` no próprio item, sem derrubar os outros.
 
 ### Resposta quando a Z-API responde 200
 
@@ -234,13 +318,56 @@ GET http://192.168.1.50:8080/telcheck?phone=5585996533131
 
 ---
 
+## Rotinas `POST /override/request` e `POST /override/confirm`
+
+**Objetivo:** permitir cadastrar cliente cujo número não tem WhatsApp, com autorização da gestora, sem que a máquina de quem pede conheça o código.
+
+### Invariantes
+
+1. O `request` **não** devolve o código. Devolve `request_id`, `phone` normalizado e `expira_em`. O código vai por Z-API só para `OVERRIDE_GESTORA_PHONE`.
+2. O código é gerado com `secrets`. No banco fica apenas o HMAC-SHA256 de `request_id:codigo` com o `OVERRIDE_PEPPER`.
+3. **Uso único.** A aprovação é um `UPDATE ... WHERE LIB_STATUS='PENDENTE'` com conferência de `rowcount`, então duas confirmações simultâneas não passam as duas.
+4. **Preso ao telefone.** O `confirm` recusa se o telefone não for o mesmo do `request`. Sem isso, um código aprovado viraria passe livre para qualquer número.
+5. Tentativa errada incrementa o contador; ao atingir `OVERRIDE_MAX_ATTEMPTS` o código vira `BLOQUEADA`. Telefone trocado também conta como tentativa.
+6. Código errado, expirado, consumido e telefone trocado devolvem **a mesma mensagem**. A distinção entre eles não é exposta.
+7. A linha de auditoria é criada no **pedido**. Pedido abandonado, expirado ou recusado também fica gravado.
+
+### Estados
+
+| Status | Significado |
+| --- | --- |
+| `PENDENTE` | aguardando a operadora digitar o código |
+| `APROVADA` | código conferido e consumido |
+| `BLOQUEADA` | estourou o limite de tentativas |
+| `EXPIRADA` | passou da validade sem uso |
+| `FALHA_ENVIO` | o Z-API não entregou a mensagem à gestora |
+
+### Erros
+
+| Situação | HTTP | `message` |
+| --- | --- | --- |
+| Código errado, expirado, usado, ou telefone diferente | 400 | `Codigo invalido ou expirado` |
+| `override/config.env` sem número da gestora ou sem pepper | 503 | `Liberacao nao configurada no servidor` |
+| SQL Server inacessível ou `pyodbc` ausente | 503 | `Erro no programa: …` |
+| Z-API não entregou a mensagem | 503 | `Nao foi possivel avisar a gestora` |
+
+O número do pedido passa pela **mesma validação** de `/whatscheck` e `/telcheck`, e um número inválido devolve 400 com a mensagem do `number_check` **antes** de qualquer mensagem à gestora. A liberação dispensa o WhatsApp, não o formato: não se acorda a gestora por um número que não pode existir.
+
+Detalhe de instalação, adaptação do SACI e a trigger: `IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.
+
+---
+
 ## Resumo
 
 | Endpoint | Fonte | Sucesso | Falha |
 | --- | --- | --- | --- |
-| `/whatscheck` | validação → Z-API (instância aleatória, retry) | `exists` true/false | 400 número; 503 frase Z-API; 500 programa |
+| `/whatscheck` | validação → Z-API (ordem sorteada por pedido, em loop, com retry) | `exists` true/false | 400 número; 503 frase Z-API; 500 programa |
 | `/telcheck` | validação → hlr-lookups (MNP) | `in_mnp` true/false | 400 número; 502/500 `Erro no programa: …` |
 | `/lookup` | validação → hlr-lookups (detalhe) | JSON HLR | igual ao `/telcheck` |
+| `/override/request` | código novo → SQL Server → Z-API para a gestora | `request_id` e `expira_em`, sem o código | 400 número; 503 config, banco ou Z-API |
+| `/override/confirm` | SQL Server (uso único, preso ao telefone) | `ok true` | 400 `Codigo invalido ou expirado`; 503 banco |
 | `/health` | — | `{"ok": true}` | 500 `Erro no programa: …` |
 
-`/whatscheck` nunca deve martelar a mesma instância: pausa 0,5–1 s aleatória, ordem aleatória, e instância nova no JSON = instância usada no pedido seguinte.
+`/whatscheck` e `/telcheck` aceitam lista de telefones; `/lookup` só um número.
+
+`/whatscheck` nunca deve martelar a mesma instância: pausa 0,5–1 s aleatória antes de cada chamada, ordem sorteada a cada pedido e girada em loop entre os números, e instância nova no JSON = instância usada no pedido seguinte.

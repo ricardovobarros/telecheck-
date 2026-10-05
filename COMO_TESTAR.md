@@ -210,8 +210,9 @@ Erros seguem sempre o mesmo formato:
 
 | Mensagem | HTTP | Quando acontece |
 | --- | --- | --- |
-| `Numero invalido` | 400 | `phone` não passou na validação; nada externo foi chamado |
-| `DDD invalido` | 400 | número de 8 ou 9 dígitos com `ddd` fora do formato de 2 dígitos |
+| `Numero invalido…` | 400 | `phone` não passou na validação; nada externo foi chamado. A mensagem diz qual regra falhou |
+| `DDD invalido` | 400 | o `ddd` não tem 2 dígitos |
+| `DDD inexistente no Brasil` | 400 | o DDD tem 2 dígitos mas não é atribuído (ex.: 20, 36, 90) |
 | `Nenhuma instancia esta ativa ou ZAPI nao respode` | 503 | nenhuma instância Z-API devolveu HTTP 200 |
 | `Erro no programa: ...` | 500 / 502 | falha inesperada, ou a hlr-lookups não respondeu |
 
