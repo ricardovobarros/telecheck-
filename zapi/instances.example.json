@@ -1,10 +1,27 @@
 {
+  "_comentario": [
+    "Copie para zapi/instances.json e troque os placeholders. Sem token real aqui: o arquivo vai para o Git.",
+    "O servidor so le 'instances'. Cada item precisa de instance_id, instance_token e client_token; sem um deles, e ignorado. 'name' e apelido.",
+    "No /whatscheck a lista e embaralhada. Tenta uma a uma (pausa de 0,5 a 1 s). A primeira com HTTP 200 define exists. Nenhuma: erro 503."
+  ],
   "instances": [
     {
       "name": "instancia-1",
-      "instance_id": "COLE_O_ID",
-      "instance_token": "COLE_O_TOKEN_DA_INSTANCIA",
-      "client_token": "COLE_O_CLIENT_TOKEN"
+      "instance_id": "COLE_O_ID_1",
+      "instance_token": "COLE_O_TOKEN_DA_INSTANCIA_1",
+      "client_token": "COLE_O_CLIENT_TOKEN_1"
+    },
+    {
+      "name": "instancia-2",
+      "instance_id": "COLE_O_ID_2",
+      "instance_token": "COLE_O_TOKEN_DA_INSTANCIA_2",
+      "client_token": "COLE_O_CLIENT_TOKEN_2"
+    },
+    {
+      "name": "instancia-3",
+      "instance_id": "COLE_O_ID_3",
+      "instance_token": "COLE_O_TOKEN_DA_INSTANCIA_3",
+      "client_token": "COLE_O_CLIENT_TOKEN_3"
     }
   ]
 }

@@ -19,6 +19,33 @@ GET /health
 GET /whatscheck?phone=996533131&ddd=11
 ```
 
+## Lógica
+
+As duas chamadas passam primeiro por `number_check.py`. Número ou DDD inválido devolve **400** e **não** chama WhatsApp nem HLR.
+
+### `/whatscheck` (Z-API)
+
+1. Lê as instâncias de `zapi/instances.json` (id, token da instância e client-token). Entrada incompleta é ignorada.
+2. Embaralha a lista e tenta uma a uma, com pausa de 0,5 a 1 s.
+3. Cada tentativa é um `GET` em `https://api.z-api.io/instances/{id}/token/{token}/phone-exists/{phone}`, com o header `Client-Token`.
+4. A primeira resposta **HTTP 200** define o resultado: `exists: true` ou `exists: false`.
+5. Se nenhuma instância responder 200, devolve **503**.
+
+`exists: false` é resposta válida (o número não tem WhatsApp). Não é erro.
+
+### `/telcheck` (base MNP)
+
+1. Faz `POST` em `https://www.hlr-lookups.com/api/v2/hlr-lookup` com o número em E.164 (`+55…`). A chave fica só em `hlr-lookup/config.env`.
+2. `in_mnp` sai dessa resposta:
+   - `processing_status` = `COMPLETED` → `true` (o número está na base MNP)
+   - `REJECTED`, `FAILED` ou `connectivity_status` = `INVALID_MSISDN` → `false`
+   - qualquer outro caso → `false`
+3. Se a hlr-lookups falhar (rede, HTTP ou config), devolve **502**.
+
+`in_mnp: false` é resposta válida (número fora da MNP ou inválido para ela). Não é o mesmo que o serviço estar fora.
+
+`/lookup` usa a mesma consulta HLR e devolve o detalhe (operadora, portabilidade, `linha_ativa`). Com `data_source: MNP_DB`, `linha_ativa` não prova que o chip está ligado.
+
 ## Respostas
 
 ### `/whatscheck`
