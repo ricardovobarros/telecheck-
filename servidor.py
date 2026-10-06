@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "hlr-lookup"))
 import override  # noqa: E402
 from lookup_ativo import HlrLookupError, _e164, _nota, in_mnp, linha_ativa, lookup  # noqa: E402
 from number_check import normalize_phone  # noqa: E402
-from zapi_client import InstanceRotation, new_rotation, whatscheck  # noqa: E402
+from whatsapp_client import InstanceRotation, new_rotation, provider_name, whatscheck  # noqa: E402
 
 app = FastAPI(title="telecheck-")
 
@@ -129,7 +129,8 @@ def _lookup(numero: str) -> dict:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True}
+    """Vivo, e qual provedor de WhatsApp esta valendo neste momento."""
+    return {"ok": True, "whatsapp": provider_name()}
 
 
 @app.get("/whatscheck")

@@ -78,7 +78,7 @@ Ou em `ipconfig /all` → **Endereço físico**.
 | GET | `/whatscheck` | `http://192.168.1.50:8080/whatscheck?phone=5585996533131` |
 | GET | `/telcheck` | `http://192.168.1.50:8080/telcheck?phone=5585996533131` |
 | GET | `/lookup` | `http://192.168.1.50:8080/lookup?phone=5585996533131` |
-| GET | `/health` | `http://192.168.1.50:8080/health` → `{"ok": true}` |
+| GET | `/health` | `http://192.168.1.50:8080/health` → `{"ok": true, "whatsapp": "zapi"}` |
 
 Número sem DDD (8 ou 9 dígitos): acrescenta `&ddd=85`.
 
@@ -213,11 +213,15 @@ Copia a partir de `hlr-lookup\config.example.env` se ainda não existir `config.
 Já no repo:
 
 - `number_check.py` — validação (corre **antes** de cada endpoint com `phone`).
-- `zapi_client.py` + `zapi\instances.json` — `/whatscheck`.
+- `whatsapp_client.py` + `whatsapp\config.env` — escolhe o provedor (`zapi` ou `uazapi`) e gira as instâncias.
+- `zapi_client.py` + `zapi\instances.json` — `/whatscheck` com Z-API.
+- `uazapi_client.py` + `uazapi\instances.json` — `/whatscheck` com uazapi.
 - `hlr-lookup\lookup_ativo.py` — `/telcheck` e `/lookup` (CLI só com `if __name__ == "__main__"`).
 - `servidor.py` — FastAPI na **raiz** do telecheck-.
 
 Copia `zapi\instances.example.json` → `zapi\instances.json` e preenche as instâncias.
+
+Para usar a **uazapi** em vez da Z-API, copia `whatsapp\config.example.env` → `whatsapp\config.env`, põe `WHATSAPP_PROVIDER=uazapi`, copia `uazapi\instances.example.json` → `uazapi\instances.json` com o teu subdomínio e os tokens, e **reinicia** o uvicorn. Confere no `/health`.
 
 ### Passo C — Servidor HTTP (FastAPI)
 
@@ -334,7 +338,7 @@ Não uses ngrok nem “expor IP público” para isto.
 ## 9. Checklist de desenvolvimento
 
 1. [ ] Python no PATH; venv `.venv` na raiz do **telecheck-**; `pip install -r requirements.txt`.
-2. [ ] `hlr-lookup\config.env` e `zapi\instances.json` preenchidos.
+2. [ ] `hlr-lookup\config.env` preenchido; `whatsapp\config.env` com o provedor e o `instances.json` dele (`zapi\` ou `uazapi\`).
 3. [ ] `servidor.py` na raiz: `/health`, `/whatscheck`, `/telcheck`, `/lookup`.
 4. [ ] venv ativo; `uvicorn servidor:app --host 0.0.0.0 --port 8080`.
 5. [ ] `curl` em `127.0.0.1`: health, número inválido (erro JSON), telcheck/whatscheck.

@@ -152,7 +152,8 @@ activemq-data/
 .envrc
 config.env
 **/config.env
-zapi/instances.json
+# Tokens reais das instancias (zapi/ e uazapi/). Os *.example.json ficam.
+**/instances.json
 .venv
 env/
 venv/

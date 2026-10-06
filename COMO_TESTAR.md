@@ -187,6 +187,9 @@ cd C:\Users\tarciopontes\Documents\_Victor\telecheck-
 Test-Path .\hlr-lookup\config.env
 Test-Path .\zapi\instances.json
 
+# qual provedor de WhatsApp esta valendo (campo "whatsapp")
+curl.exe -s "http://127.0.0.1:8080/health"
+
 # quem está escutando a porta
 Get-NetTCPConnection -LocalPort 8080 -State Listen
 ```
@@ -197,7 +200,7 @@ Get-NetTCPConnection -LocalPort 8080 -State Listen
 
 | Endpoint | Para quê | Resposta de sucesso |
 | --- | --- | --- |
-| `GET /health` | Serviço está no ar | `{"ok": true}` |
+| `GET /health` | Serviço está no ar, e qual provedor de WhatsApp | `{"ok": true, "whatsapp": "zapi"}` |
 | `GET /whatscheck?phone=` | Número tem WhatsApp | `{"phone": "...", "exists": true}` |
 | `GET /telcheck?phone=` | Número está na base MNP | `{"phone": "...", "in_mnp": true}` |
 | `GET /lookup?phone=` | Detalhe HLR (operadora, portabilidade) | JSON completo |
@@ -238,6 +241,8 @@ Atenção: `exists: false` e `in_mnp: false` são **respostas válidas**, não e
 Ficam só neste computador e estão fora do git:
 
 - `hlr-lookup\config.env` — chaves da hlr-lookups
+- `whatsapp\config.env` — qual provedor de WhatsApp usar (`zapi` ou `uazapi`)
 - `zapi\instances.json` — instâncias da Z-API
+- `uazapi\instances.json` — instâncias da uazapi (só se `WHATSAPP_PROVIDER=uazapi`)
 
 Os arquivos `*.example` do repositório devem conter **apenas placeholders**. Nunca coloque chave real neles: o repositório é público.

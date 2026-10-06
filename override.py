@@ -14,7 +14,7 @@ from hashlib import sha256
 from pathlib import Path
 
 import override_store
-import zapi_client
+import whatsapp_client
 from number_check import normalize_phone
 
 ROOT = Path(__file__).resolve().parent
@@ -138,7 +138,10 @@ def request_override(
     motivo: str,
     ddd: str | None = None,
 ) -> dict:
-    """Gera o codigo, grava PENDENTE e manda para a gestora pelo Z-API."""
+    """Gera o codigo, grava PENDENTE e manda para a gestora pelo WhatsApp.
+
+    Quem entrega e o provedor configurado em whatsapp/config.env.
+    """
     gestora = gestora_phone()
     if not gestora or not _pepper():
         raise OverrideError(MESSAGE_NOT_CONFIGURED, 503)
@@ -177,7 +180,7 @@ def request_override(
         minutos=max(1, ttl_seconds() // 60),
     )
     try:
-        zapi_client.send_text(gestora, mensagem)
+        whatsapp_client.send_text(gestora, mensagem)
     except RuntimeError as exc:
         _safe_mark(request_id, override_store.STATUS_SEND_FAILED)
         raise OverrideError(MESSAGE_SEND_FAILED, 503) from exc

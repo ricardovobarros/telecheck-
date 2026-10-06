@@ -65,15 +65,37 @@ As faixas vêm do plano de numeração brasileiro do libphonenumber do Google. A
 
 Com um número só, número ou DDD inválido devolve **400** e **não** chama WhatsApp nem HLR. Em lista, o item inválido fica com erro próprio e os outros seguem. Tabela completa de regras e mensagens: `ESPECIFICACAO_ROTINAS.md`.
 
-### `/whatscheck` (Z-API)
+### Provedor de WhatsApp: Z-API ou uazapi
 
-1. Lê as instâncias de `zapi/instances.json` (id, token da instância e client-token). Entrada incompleta é ignorada.
+O `/whatscheck` e o `/override/request` falam com **um** provedor por vez, escolhido em `whatsapp/config.env`:
+
+```
+WHATSAPP_PROVIDER=zapi     # ou uazapi
+```
+
+Trocar é mudar essa linha e **reiniciar o servidor**. Vazio ou valor desconhecido cai em `zapi`. Para ver o que está valendo, `GET /health` devolve `{"ok": true, "whatsapp": "zapi"}`.
+
+| | Z-API (`zapi`) | uazapi (`uazapi`) |
+| --- | --- | --- |
+| Instâncias | `zapi/instances.json` | `uazapi/instances.json` |
+| Base | `https://api.z-api.io` | `https://{subdominio}.uazapi.com`, ou o seu host |
+| Autenticação | header `Client-Token` | header `token` |
+| Existe no WhatsApp | `GET /phone-exists/{numero}` → `exists` | `POST /chat/check` com `{"numbers": [...]}` → `isInWhatsapp` |
+| Enviar texto | `POST /send-text` com `phone` e `message` | `POST /send/text` com `number` e `text` |
+
+Os dois arquivos de instâncias podem ficar no disco ao mesmo tempo. Só o do provedor escolhido é lido, então dá para voltar atrás sem perder configuração.
+
+O código que conhece cada provedor está em `zapi_client.py` e `uazapi_client.py`. Tudo o que é comum — ler o config, sortear, girar a ordem, a pausa e o failover — está em `whatsapp_client.py`, e é idêntico para os dois.
+
+### `/whatscheck`
+
+1. Lê as instâncias do provedor configurado. Entrada incompleta é ignorada.
 2. **Embaralha a lista uma única vez por pedido.** Os números seguintes não voltam a embaralhar: giram nessa ordem, em loop.
-3. Cada tentativa é um `GET` em `https://api.z-api.io/instances/{id}/token/{token}/phone-exists/{phone}`, com o header `Client-Token`, sempre depois de uma pausa de 0,5 a 1 s.
+3. Cada tentativa é uma chamada ao provedor, sempre depois de uma pausa de 0,5 a 1 s.
 4. A primeira resposta **HTTP 200** define o resultado: `exists: true` ou `exists: false`.
 5. Se nenhuma instância responder 200, devolve **503** (número único) ou marca o item com erro (lista).
 
-`exists: false` é resposta válida (o número não tem WhatsApp). Não é erro.
+`exists: false` é resposta válida (o número não tem WhatsApp). Não é erro. No uazapi, um item que volta com `error` conta como **falha da instância**, não como "não tem WhatsApp": a rotação tenta a seguinte.
 
 #### Como as instâncias giram
 
@@ -89,7 +111,7 @@ O sorteio é por pedido, então dois pedidos seguidos não começam na mesma ins
 
 #### Tempo de um lote
 
-A pausa de 0,5 a 1 s vale para **cada** chamada à Z-API, então um lote de N números leva no mínimo `N × 0,5 s`. Com 60 números são 30 a 60 segundos de pedido — vale conferir o timeout do cliente antes de mandar listas grandes.
+A pausa de 0,5 a 1 s vale para **cada** chamada de WhatsApp, nos dois provedores, então um lote de N números leva no mínimo `N × 0,5 s`. Com 60 números são 30 a 60 segundos de pedido — vale conferir o timeout do cliente antes de mandar listas grandes.
 
 ### `/telcheck` (base MNP)
 
@@ -100,7 +122,7 @@ A pausa de 0,5 a 1 s vale para **cada** chamada à Z-API, então um lote de N n�
    - qualquer outro caso → `false`
 3. Se a hlr-lookups falhar (rede, HTTP ou config), devolve **502** (número único) ou marca o item com erro (lista).
 
-Em lista, cada número é uma consulta HLR, feita na ordem recebida. Não há pausa entre elas: a pausa de 0,5 a 1 s é só da Z-API.
+Em lista, cada número é uma consulta HLR, feita na ordem recebida. Não há pausa entre elas: a pausa de 0,5 a 1 s é só das chamadas de WhatsApp.
 
 `in_mnp: false` é resposta válida (número fora da MNP ou inválido para ela). Não é o mesmo que o serviço estar fora.
 
@@ -225,6 +247,6 @@ O passo a passo de instalação, a adaptação do SACI e a trigger de bloqueio e
 | hlr-lookups falhou | 502 | `{"error": true, "message": "Erro no programa: …"}` |
 | Falha no programa | 500 | `{"error": true, "message": "Erro no programa: …"}` |
 
-`/health` → `{"ok": true}`.
+`/health` → `{"ok": true, "whatsapp": "zapi"}`. O campo `whatsapp` diz qual provedor está valendo.
 
 Rede, venv e Windows: `GUIA_API_LAN.md`. Regras das rotinas: `ESPECIFICACAO_ROTINAS.md`. Liberação de cadastro: `IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.

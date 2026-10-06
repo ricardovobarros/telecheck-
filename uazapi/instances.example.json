@@ -1,0 +1,26 @@
+{
+  "_comentario": [
+    "Copie para uazapi/instances.json e troque os placeholders. Sem token real aqui: o arquivo vai para o Git.",
+    "So e usado quando whatsapp/config.env tem WHATSAPP_PROVIDER=uazapi.",
+    "O base_url do topo vale para todas as instancias. Cada item pode sobrepor com o seu proprio base_url.",
+    "Troque SEU_SUBDOMINIO pelo subdominio da sua conta (ex.: free ou api). Se for self-hosted, use o seu host com https://.",
+    "O servidor so le 'instances'. Cada item precisa de token e de um base_url (do item ou do topo); sem isso, e ignorado. 'name' e apelido.",
+    "No /whatscheck a lista e embaralhada uma vez por pedido. A primeira com HTTP 200 define exists; se falhar, tenta a seguinte. Nenhuma: erro 503.",
+    "Com lista de telefones, os numeros giram essa ordem sorteada em loop: sorteio (B,C,D,A) e 6 numeros = B,C,D,A,B,C. A pausa de 0,5 a 1 s vale para cada chamada."
+  ],
+  "base_url": "https://SEU_SUBDOMINIO.uazapi.com",
+  "instances": [
+    {
+      "name": "linha-1",
+      "token": "COLE_O_TOKEN_DA_INSTANCIA_1"
+    },
+    {
+      "name": "linha-2",
+      "token": "COLE_O_TOKEN_DA_INSTANCIA_2"
+    },
+    {
+      "name": "linha-3",
+      "token": "COLE_O_TOKEN_DA_INSTANCIA_3"
+    }
+  ]
+}

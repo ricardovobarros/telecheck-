@@ -157,9 +157,11 @@ Se o programa **não funcionar como esperado** (exceção, API externa a falhar,
 
 ---
 
-## Configuração das instâncias Z-API (ficheiro separado)
+## Configuração das instâncias (ficheiro separado)
 
-As credenciais Z-API **não** ficam no código. Ficam num JSON à parte:
+O provedor de WhatsApp é escolhido em `whatsapp/config.env` (`WHATSAPP_PROVIDER=zapi` ou `uazapi`) — ver "Trocar para o uazapi", mais abaixo. O padrão é a Z-API.
+
+As credenciais **não** ficam no código. Ficam num JSON à parte:
 
 | Ficheiro | Função |
 | --- | --- |
@@ -207,11 +209,48 @@ GET https://api.z-api.io/instances/{instance_id}/token/{instance_token}/phone-ex
 Header: Client-Token: {client_token}
 ```
 
+### Trocar para o uazapi
+
+O provedor sai de `WHATSAPP_PROVIDER` em `whatsapp/config.env`, e vale só para as chamadas de WhatsApp (`/whatscheck` e a mensagem do `/override/request`). O HLR não muda.
+
+```
+WHATSAPP_PROVIDER=uazapi
+```
+
+É preciso **reiniciar o servidor**: o valor é lido no import, não a cada pedido. O `GET /health` mostra o que está valendo. Vazio ou valor desconhecido cai em `zapi`, para uma linha com erro de digitação não derrubar o serviço.
+
+Com `uazapi`, o arquivo lido passa a ser `uazapi/instances.json`:
+
+```json
+{
+  "base_url": "https://SEU_SUBDOMINIO.uazapi.com",
+  "instances": [
+    { "name": "linha-1", "token": "…" },
+    { "name": "linha-2", "token": "…" },
+    { "name": "linha-3", "token": "…", "base_url": "https://wa.empresa.com.br" }
+  ]
+}
+```
+
+O `base_url` do topo vale para todas, porque o normal é as instâncias de uma conta viverem no mesmo subdomínio. Por instância, ele sobrepõe o do topo — serve para self-hosted. Só entram instâncias com `token` e algum `base_url`.
+
+Endpoints uazapi por instância, conforme a [especificação oficial](https://docs.uazapi.com/openapi-bundled.json):
+
+```
+POST {base_url}/chat/check    {"numbers": ["{numero}"]}
+POST {base_url}/send/text     {"number": "{numero}", "text": "…"}
+Header: token: {token}
+```
+
+O `/chat/check` responde uma **lista**, um item por número pedido, e aqui pedimos um por chamada para manter a rotação de instâncias. O `isInWhatsapp` do primeiro item é o `exists`. Item que volta com `error` conta como **falha da instância**, não como "não tem WhatsApp", e a rotação tenta a seguinte. O mesmo vale para o HTTP **429** de limite de chamadas.
+
+O resto — sorteio, ordem em loop, pausa de 0,5 a 1 s, failover e os códigos HTTP — é idêntico nos dois provedores: está em `whatsapp_client.py`, fora do código de cada um.
+
 ---
 
 ## Rotina `GET /whatscheck`
 
-**Objetivo:** dizer se o número existe no WhatsApp, usando Z-API, sem gastar sempre a mesma instância.
+**Objetivo:** dizer se o número existe no WhatsApp, usando o provedor configurado, sem gastar sempre a mesma instância.
 
 ### Fluxo
 
@@ -366,7 +405,7 @@ Detalhe de instalação, adaptação do SACI e a trigger: `IMPLEMENTACAO_LIBERAC
 | `/lookup` | validação → hlr-lookups (detalhe) | JSON HLR | igual ao `/telcheck` |
 | `/override/request` | código novo → SQL Server → Z-API para a gestora | `request_id` e `expira_em`, sem o código | 400 número; 503 config, banco ou Z-API |
 | `/override/confirm` | SQL Server (uso único, preso ao telefone) | `ok true` | 400 `Codigo invalido ou expirado`; 503 banco |
-| `/health` | — | `{"ok": true}` | 500 `Erro no programa: …` |
+| `/health` | — | `{"ok": true, "whatsapp": "zapi"}` | 500 `Erro no programa: …` |
 
 `/whatscheck` e `/telcheck` aceitam lista de telefones; `/lookup` só um número.
 

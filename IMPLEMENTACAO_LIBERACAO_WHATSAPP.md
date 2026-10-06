@@ -64,7 +64,9 @@ Se a gestora **recusa**, ela simplesmente não passa o código e o pedido morre 
 | `db/schema.sql` | DDL da tabela. Novo, **ainda não aplicado** |
 | `db/config.example.env` | Modelo da conexão ODBC. Novo |
 | `override/config.example.env` | Número da gestora, TTL, tentativas, pepper. Novo |
-| `zapi_client.py` | Ganhou `send_text` |
+| `whatsapp_client.py` | Escolhe o provedor (`zapi` ou `uazapi`), gira as instâncias e tem o `send_text`. Novo |
+| `zapi_client.py` | Só o HTTP da Z-API, incluindo o envio de texto |
+| `uazapi_client.py` | Só o HTTP da uazapi. Novo |
 | `servidor.py` | Ganhou `/override/request` e `/override/confirm` |
 | `requirements.txt` | Ganhou `pyodbc` |
 
