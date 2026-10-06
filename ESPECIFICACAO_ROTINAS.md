@@ -246,6 +246,8 @@ O `/chat/check` responde uma **lista**, um item por número pedido, e aqui pedim
 
 O resto — sorteio, ordem em loop, pausa de 0,5 a 1 s, failover e os códigos HTTP — é idêntico nos dois provedores: está em `whatsapp_client.py`, fora do código de cada um.
 
+O `send_text` da mensagem para a gestora não entra nesse esquema: usa sempre a **primeira** instância da lista do provedor ativo, sem sorteio, sem pausa e sem failover. Se ela não responder 200, o pedido falha com 503.
+
 ---
 
 ## Rotina `GET /whatscheck`

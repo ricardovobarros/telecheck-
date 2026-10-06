@@ -116,24 +116,25 @@ def whatscheck(phone: str, rotation: InstanceRotation | None = None) -> bool:
     raise RuntimeError(MESSAGE_NONE)
 
 
-def send_text(phone: str, message: str, rotation: InstanceRotation | None = None) -> dict:
-    """Manda a mensagem pela primeira instância que responder 200.
+def send_text(phone: str, message: str) -> dict:
+    """Manda a mensagem sempre pela primeira instância do provedor configurado.
 
-    Mesma pausa de 0,5 a 1 s do phone-exists, porque também é chamada de
-    WhatsApp.
+    Sem sorteio e sem failover: a gestora recebe todo código do mesmo número.
+    Se essa instância não responder 200, RuntimeError, e não se tenta outra.
     """
-    if rotation is None:
-        rotation = new_rotation()
-    for instance in rotation.next_order():
-        time.sleep(random.uniform(0.5, 1.0))
-        status, data = rotation.provider.send_text(instance, phone, message)
-        if status == 200 and data is not None:
-            return {
-                "provider": rotation.provider.NAME,
-                "instance": instance["name"],
-                "message_id": data.get("message_id"),
-            }
-    raise RuntimeError(MESSAGE_NONE)
+    modulo = provider()
+    instances = modulo.load_instances()
+    if not instances:
+        raise RuntimeError(MESSAGE_NONE)
+    instance = instances[0]
+    status, data = modulo.send_text(instance, phone, message)
+    if status != 200 or data is None:
+        raise RuntimeError(MESSAGE_NONE)
+    return {
+        "provider": modulo.NAME,
+        "instance": instance["name"],
+        "message_id": data.get("message_id"),
+    }
 
 
 _load_config()
