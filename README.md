@@ -26,7 +26,19 @@ python -m venv .venv
 
 Está no ar quando aparecer `Uvicorn running on http://127.0.0.1:8080`. Para parar, `Ctrl + C`.
 
-O `--host 127.0.0.1` deixa a API só neste computador, que é o certo para testar. No servidor do escritório use `--host 0.0.0.0`, para os outros PCs alcançarem — aí entra a regra de firewall da porta 8080, explicada no `GUIA_API_LAN.md`.
+O `--host 127.0.0.1` deixa a API só neste computador, que é o certo para testar. No servidor do escritório use `--host 0.0.0.0`, para os outros PCs alcançarem.
+
+### Liberar o firewall para outros computadores
+
+A API precisa estar no ar com `--host 0.0.0.0`. O firewall do Windows, separado disso, é o que barra o cliente. Neste computador a Ethernet está como rede **Pública**, então a regra tem de ser desse perfil: uma regra só de rede privada não vale aqui.
+
+Cole no PowerShell **como administrador**:
+
+```powershell
+if (Get-NetFirewallRule -DisplayName "telecheck-" -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -DisplayName "telecheck-" }; New-NetFirewallRule -DisplayName "telecheck-" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Public
+```
+
+Isso libera a entrada TCP na porta **8080** para máquinas que alcançam este PC. Não abre o roteador para a internet. O cliente chama `http://192.168.0.125:8080`.
 
 ### Checar se está funcionando
 
@@ -56,7 +68,7 @@ O serviço sobe e responde sem configurar nada. O que depende de config:
 
 | Endpoint | Precisa de |
 | --- | --- |
-| `/health` | nada |
+| `/health`, `/numbercheck` | nada |
 | `/whatscheck` | `zapi/instances.json` ou `uazapi/instances.json`. Sem isso, **503** |
 | `/telcheck`, `/lookup` | `hlr-lookup/config.env` com a chave da hlr-lookups |
 | `/override/request`, `/override/confirm` | `override/config.env`, `db/config.env` e a tabela do `db/schema.sql`. Sem o driver ODBC, **503** |
@@ -66,6 +78,7 @@ Validação de número inválido responde **400** em qualquer caso, porque não 
 ## Chamadas
 
 ```
+GET  /numbercheck?phone=5585996533131
 GET  /whatscheck?phone=5585996533131
 GET  /telcheck?phone=5585996533131
 GET  /lookup?phone=5585996533131
@@ -73,6 +86,8 @@ POST /override/request
 POST /override/confirm
 GET  /health
 ```
+
+`/numbercheck` só aplica o `number_check.py` (DDD, fixo, celular) e devolve o número normalizado, sem chamar nada externo: `{"phone": "5585996533131", "valid": true}`, ou **400** com a mesma mensagem dos outros endpoints. É o que o SACI usa no telefone adicional, que não precisa ter WhatsApp. Aceita lista como `/whatscheck`.
 
 `phone` aceita com ou sem DDI 55 e com máscara. Sem `&ddd=`, usa **85**. Para forçar outro DDD:
 

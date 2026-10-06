@@ -1,4 +1,4 @@
-"""API LAN do telecheck-: /whatscheck, /telcheck, /lookup, /override, /health."""
+"""API LAN do telecheck-: /numbercheck, /whatscheck, /telcheck, /lookup, /override, /health."""
 from __future__ import annotations
 
 import sys
@@ -131,6 +131,22 @@ def _lookup(numero: str) -> dict:
 def health() -> dict:
     """Vivo, e qual provedor de WhatsApp esta valendo neste momento."""
     return {"ok": True, "whatsapp": provider_name()}
+
+
+@app.get("/numbercheck")
+def numbercheck_endpoint(
+    phone: list[str] | None = Query(default=None),
+    ddd: str | None = Query(default=None),
+) -> dict:
+    """So o formato (number_check): nenhuma consulta externa, nenhum custo."""
+    entries = _split_phones(phone)
+    if not entries:
+        raise ApiError("Numero invalido", 400)
+
+    if len(entries) == 1:
+        return {"phone": _require_phone(entries[0], ddd), "valid": True}
+
+    return _batch_results(_normalize_batch(entries, ddd), lambda _numero: {"valid": True})
 
 
 @app.get("/whatscheck")
