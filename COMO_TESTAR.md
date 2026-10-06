@@ -59,7 +59,7 @@ Abra **outra** janela do PowerShell (deixe a do uvicorn rodando) e use `curl.exe
 curl.exe -s "http://127.0.0.1:8080/health"
 ```
 
-Esperado: `{"ok":true}`
+Esperado: `{"ok":true,"whatsapp":"zapi"}`. O campo `whatsapp` mostra qual provedor está configurado.
 
 ### 2.2 Número inválido (não gasta Z-API nem HLR)
 

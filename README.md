@@ -4,6 +4,65 @@ API HTTP na LAN para verificar telefone no WhatsApp (`/whatscheck`) e na base MN
 
 Base: `http://IP_DO_SERVIDOR:8080`
 
+## Rodar no seu computador
+
+Precisa de **Python 3.11 ou mais novo**. Na raiz do projeto:
+
+**macOS ou Linux**
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn servidor:app --host 127.0.0.1 --port 8080
+```
+
+**Windows (PowerShell)**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn servidor:app --host 127.0.0.1 --port 8080
+```
+
+Está no ar quando aparecer `Uvicorn running on http://127.0.0.1:8080`. Para parar, `Ctrl + C`.
+
+O `--host 127.0.0.1` deixa a API só neste computador, que é o certo para testar. No servidor do escritório use `--host 0.0.0.0`, para os outros PCs alcançarem — aí entra a regra de firewall da porta 8080, explicada no `GUIA_API_LAN.md`.
+
+### Checar se está funcionando
+
+Numa **outra** janela de terminal, deixando a do uvicorn rodando. Nenhum dos dois testes gasta Z-API, HLR ou crédito nenhum:
+
+```bash
+curl -s "http://127.0.0.1:8080/health"
+curl -s "http://127.0.0.1:8080/whatscheck?phone=2033334444"
+```
+
+Esperado:
+
+```json
+{"ok": true, "whatsapp": "zapi"}
+{"error": true, "message": "DDD inexistente no Brasil"}
+```
+
+O primeiro diz que o serviço subiu, e o `whatsapp` mostra qual provedor está configurado. O segundo prova que a validação está barrando número impossível **antes** de chamar qualquer API paga — o DDD 20 não existe no Brasil.
+
+No PowerShell escreva `curl.exe`, com o `.exe`: só `curl` é apelido do `Invoke-WebRequest` e mostra a saída de outro jeito.
+
+A documentação interativa do FastAPI fica em `http://127.0.0.1:8080/docs`, e dá para disparar as chamadas por lá.
+
+### O que funciona sem nenhuma chave
+
+O serviço sobe e responde sem configurar nada. O que depende de config:
+
+| Endpoint | Precisa de |
+| --- | --- |
+| `/health` | nada |
+| `/whatscheck` | `zapi/instances.json` ou `uazapi/instances.json`. Sem isso, **503** |
+| `/telcheck`, `/lookup` | `hlr-lookup/config.env` com a chave da hlr-lookups |
+| `/override/request`, `/override/confirm` | `override/config.env`, `db/config.env` e a tabela do `db/schema.sql`. Sem o driver ODBC, **503** |
+
+Validação de número inválido responde **400** em qualquer caso, porque não chama nada externo. Passo a passo de teste no Windows, com cada endpoint: `COMO_TESTAR.md`.
+
 ## Chamadas
 
 ```
