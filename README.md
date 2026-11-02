@@ -70,10 +70,10 @@ O serviço sobe e responde sem configurar nada. O que depende de config:
 | --- | --- |
 | `/health`, `/numbercheck` | nada |
 | `/whatscheck` | `zapi/instances.json` ou `uazapi/instances.json`. Sem isso, **503** |
-| `/telcheck`, `/lookup` | `hlr-lookup/config.env` com a chave da hlr-lookups |
-| `/override/request`, `/override/confirm` | `override/config.env`, `db/config.env` e a tabela do `db/schema.sql`. Sem o driver ODBC, **503** |
+| `/telcheck`, `/lookup` | `config.env` com a chave da hlr-lookups |
+| `/override/request`, `/override/confirm` | `config.env`, `config.env` e a tabela do `db/schema.sql`. Sem o driver ODBC, **503** |
 
-Validação de número inválido responde **400** em qualquer caso, porque não chama nada externo. Passo a passo de teste no Windows, com cada endpoint: `COMO_TESTAR.md`.
+Validação de número inválido responde **400** em qualquer caso, porque não chama nada externo. Passo a passo de teste no Windows, com cada endpoint: `docs/COMO_TESTAR.md`.
 
 ## Chamadas
 
@@ -137,11 +137,11 @@ Um número válido é `55` + DDD + parte local, com:
 
 As faixas vêm do plano de numeração brasileiro do libphonenumber do Google. A mensagem de erro diz qual regra falhou (ex.: `Numero invalido: celular comeca com 9 seguido de 6, 7, 8 ou 9`, `DDD inexistente no Brasil`).
 
-Com um número só, número ou DDD inválido devolve **400** e **não** chama WhatsApp nem HLR. Em lista, o item inválido fica com erro próprio e os outros seguem. Tabela completa de regras e mensagens: `ESPECIFICACAO_ROTINAS.md`.
+Com um número só, número ou DDD inválido devolve **400** e **não** chama WhatsApp nem HLR. Em lista, o item inválido fica com erro próprio e os outros seguem. Tabela completa de regras e mensagens: `docs/ESPECIFICACAO_ROTINAS.md`.
 
 ### Provedor de WhatsApp: Z-API ou uazapi
 
-O `/whatscheck` e o `/override/request` falam com **um** provedor por vez, escolhido em `whatsapp/config.env`:
+O `/whatscheck` e o `/override/request` falam com **um** provedor por vez, escolhido em `config.env`:
 
 ```
 WHATSAPP_PROVIDER=zapi     # ou uazapi
@@ -191,7 +191,7 @@ A pausa de 0,5 a 1 s vale para **cada** chamada de WhatsApp, nos dois provedores
 
 ### `/telcheck` (base MNP)
 
-1. Faz `POST` em `https://www.hlr-lookups.com/api/v2/hlr-lookup` com o número em E.164 (`+55…`). A chave fica só em `hlr-lookup/config.env`.
+1. Faz `POST` em `https://www.hlr-lookups.com/api/v2/hlr-lookup` com o número em E.164 (`+55…`). A chave fica só em `config.env`.
 2. `in_mnp` sai dessa resposta:
    - `processing_status` = `COMPLETED` → `true` (o número está na base MNP)
    - `REJECTED`, `FAILED` ou `connectivity_status` = `INVALID_MSISDN` → `false`
@@ -306,15 +306,15 @@ As quatro falhas do 400 devolvem **a mesma frase**, de propósito: dizer qual de
 
 | Arquivo | Conteúdo | Vai para o git? |
 | --- | --- | --- |
-| `override/config.env` | número da gestora, pepper do HMAC, validade, tentativas | não |
-| `db/config.env` | connection string ODBC do SQL Server do SACI | não |
+| `config.env` | número da gestora, pepper do HMAC, validade, tentativas | não |
+| `config.env` | connection string ODBC do SQL Server do SACI | não |
 | `db/schema.sql` | DDL da tabela `LIBERACAO_WHATSAPP` | sim |
 
 Precisa do **ODBC Driver 17 ou 18 for SQL Server** na máquina e do `pyodbc` do `requirements.txt`. O `pyodbc` é importado só quando o banco é usado, então o serviço sobe e o `/whatscheck` funciona mesmo sem o driver — apenas os dois endpoints de liberação devolvem 503.
 
 No banco fica apenas o **HMAC-SHA256** do código, nunca o código em claro. A auditoria nasce no pedido, não na aprovação, então tentativas abandonadas e recusadas também ficam registradas.
 
-O passo a passo de instalação, a adaptação do SACI e a trigger de bloqueio estão em `IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.
+O passo a passo de instalação, a adaptação do SACI e a trigger de bloqueio estão em `docs/IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.
 
 | Situação | HTTP | Corpo |
 | --- | --- | --- |
@@ -325,4 +325,4 @@ O passo a passo de instalação, a adaptação do SACI e a trigger de bloqueio e
 
 `/health` → `{"ok": true, "whatsapp": "zapi"}`. O campo `whatsapp` diz qual provedor está valendo.
 
-Rede, venv e Windows: `GUIA_API_LAN.md`. Regras das rotinas: `ESPECIFICACAO_ROTINAS.md`. Liberação de cadastro: `IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.
+Rede, venv e Windows: `docs/GUIA_API_LAN.md`. Regras das rotinas: `docs/ESPECIFICACAO_ROTINAS.md`. Liberação de cadastro: `docs/IMPLEMENTACAO_LIBERACAO_WHATSAPP.md`.

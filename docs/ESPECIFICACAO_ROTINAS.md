@@ -159,7 +159,7 @@ Se o programa **não funcionar como esperado** (exceção, API externa a falhar,
 
 ## Configuração das instâncias (ficheiro separado)
 
-O provedor de WhatsApp é escolhido em `whatsapp/config.env` (`WHATSAPP_PROVIDER=zapi` ou `uazapi`) — ver "Trocar para o uazapi", mais abaixo. O padrão é a Z-API.
+O provedor de WhatsApp é escolhido em `config.env` (`WHATSAPP_PROVIDER=zapi` ou `uazapi`) — ver "Trocar para o uazapi", mais abaixo. O padrão é a Z-API.
 
 As credenciais **não** ficam no código. Ficam num JSON à parte:
 
@@ -211,7 +211,7 @@ Header: Client-Token: {client_token}
 
 ### Trocar para o uazapi
 
-O provedor sai de `WHATSAPP_PROVIDER` em `whatsapp/config.env`, e vale só para as chamadas de WhatsApp (`/whatscheck` e a mensagem do `/override/request`). O HLR não muda.
+O provedor sai de `WHATSAPP_PROVIDER` em `config.env`, e vale só para as chamadas de WhatsApp (`/whatscheck` e a mensagem do `/override/request`). O HLR não muda.
 
 ```
 WHATSAPP_PROVIDER=uazapi
@@ -312,7 +312,7 @@ GET http://192.168.1.50:8080/whatscheck?phone=5585996533131
 
 **Objetivo:** dizer se o número está na base MNP (hlr-lookups.com). Só `true` ou `false`.
 
-Usar a mesma chamada que `hlr-lookup/lookup_ativo.py` (`POST /api/v2/hlr-lookup`, chaves em `hlr-lookup/config.env`).
+Usar a mesma chamada que `hlr-lookup/lookup_ativo.py` (`POST /api/v2/hlr-lookup`, chaves em `config.env`).
 
 ### Fluxo
 
@@ -388,7 +388,7 @@ GET http://192.168.1.50:8080/telcheck?phone=5585996533131
 | Situação | HTTP | `message` |
 | --- | --- | --- |
 | Código errado, expirado, usado, ou telefone diferente | 400 | `Codigo invalido ou expirado` |
-| `override/config.env` sem número da gestora ou sem pepper | 503 | `Liberacao nao configurada no servidor` |
+| `config.env` sem número da gestora ou sem pepper | 503 | `Liberacao nao configurada no servidor` |
 | SQL Server inacessível ou `pyodbc` ausente | 503 | `Erro no programa: …` |
 | Z-API não entregou a mensagem | 503 | `Nao foi possivel avisar a gestora` |
 

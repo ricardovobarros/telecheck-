@@ -62,8 +62,8 @@ Se a gestora **recusa**, ela simplesmente não passa o código e o pedido morre 
 | `override.py` | Regra de negócio: gera código, valida, orquestra. Novo |
 | `override_store.py` | Acesso à `LIBERACAO_WHATSAPP` no SQL Server. Novo |
 | `db/schema.sql` | DDL da tabela. Novo, **ainda não aplicado** |
-| `db/config.example.env` | Modelo da conexão ODBC. Novo |
-| `override/config.example.env` | Número da gestora, TTL, tentativas, pepper. Novo |
+| `config.example.env` | Modelo da conexão ODBC. Novo |
+| `config.example.env` | Número da gestora, TTL, tentativas, pepper. Novo |
 | `whatsapp_client.py` | Escolhe o provedor (`zapi` ou `uazapi`), gira as instâncias e tem o `send_text`. Novo |
 | `zapi_client.py` | Só o HTTP da Z-API, incluindo o envio de texto |
 | `uazapi_client.py` | Só o HTTP da uazapi. Novo |
@@ -97,7 +97,7 @@ Erro 400: `{"error": true, "message": "Codigo invalido ou expirado", "tentativas
 | HTTP | Quando |
 | --- | --- |
 | 400 | código errado, expirado, já usado, ou telefone diferente do pedido |
-| 503 | `override/config.env` incompleto, SQL Server inacessível, ou Z-API não entregou |
+| 503 | `config.env` incompleto, SQL Server inacessível, ou Z-API não entregou |
 
 ### Garantias implementadas
 
@@ -128,13 +128,13 @@ Get-OdbcDriver -Name "*SQL Server*"
 Copie e preencha os dois configs (ambos ficam fora do git por `**/config.env`):
 
 ```powershell
-copy db\config.example.env db\config.env
-copy override\config.example.env override\config.env
+copy `config.example.env` `config.env`
+copy `config.example.env` `config.env`
 ```
 
-Em `db\config.env` vai a connection string **em formato ODBC**. O SACI usa OLE DB em `C:\Arquivos Saci\conexao.udl` com `Provider=SQLOLEDB.1` — servidor e banco são os mesmos, só a sintaxe muda. Abra o `.udl` num editor de texto para pegar `SERVER` e `DATABASE`.
+Em `config.env` vai a connection string **em formato ODBC**. O SACI usa OLE DB em `C:\Arquivos Saci\conexao.udl` com `Provider=SQLOLEDB.1` — servidor e banco são os mesmos, só a sintaxe muda. Abra o `.udl` num editor de texto para pegar `SERVER` e `DATABASE`.
 
-Em `override\config.env`, gere o pepper:
+Em `config.env`, gere o pepper:
 
 ```powershell
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -280,8 +280,8 @@ Nada foi testado, por decisão explícita, para não gastar chamadas da Z-API. O
 Roteiro mínimo, na ordem, já no servidor Windows:
 
 1. `/health` responde — o serviço sobe com os módulos novos.
-2. `/override/request` **sem** `override/config.env` → espera 503 `Liberacao nao configurada no servidor`.
-3. Com config e **sem** `db/config.env` → espera 503 com a mensagem do `DB_ODBC_CONNECTION_STRING`.
+2. `/override/request` **sem** `config.env` → espera 503 `Liberacao nao configurada no servidor`.
+3. Com config e **sem** `config.env` → espera 503 com a mensagem do `DB_ODBC_CONNECTION_STRING`.
 4. Com os dois configs → espera 200 com `request_id`, a linha `PENDENTE` no banco, e a mensagem chegando no celular da gestora. **Esta é a primeira chamada que gasta Z-API.**
 5. `/override/confirm` com o código certo → 200 `ok true` e a linha vira `APROVADA` com `LIB_CONSUMIDO_EM`.
 6. Repetir o mesmo `confirm` → espera 400, porque o uso é único.

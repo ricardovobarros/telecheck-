@@ -184,7 +184,7 @@ cd C:\Users\tarciopontes\Documents\_Victor\telecheck-
 .\.venv\Scripts\python.exe -c "import fastapi, uvicorn; print('ok')"
 
 # arquivos de configuração (devem existir, e ficam fora do git)
-Test-Path .\hlr-lookup\config.env
+Test-Path .\`config.env`
 Test-Path .\zapi\instances.json
 
 # qual provedor de WhatsApp esta valendo (campo "whatsapp")
@@ -240,8 +240,8 @@ Atenção: `exists: false` e `in_mnp: false` são **respostas válidas**, não e
 
 Ficam só neste computador e estão fora do git:
 
-- `hlr-lookup\config.env` — chaves da hlr-lookups
-- `whatsapp\config.env` — qual provedor de WhatsApp usar (`zapi` ou `uazapi`)
+- `config.env` — chaves da hlr-lookups
+- `config.env` — qual provedor de WhatsApp usar (`zapi` ou `uazapi`)
 - `zapi\instances.json` — instâncias da Z-API
 - `uazapi\instances.json` — instâncias da uazapi (só se `WHATSAPP_PROVIDER=uazapi`)
 

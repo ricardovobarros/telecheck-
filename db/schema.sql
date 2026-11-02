@@ -6,7 +6,7 @@
 --
 -- A trigger que BLOQUEIA cadastro sem liberacao NAO esta aqui de proposito.
 -- Ela derruba o cadastro do SACI atual no instante em que for criada.
--- Veja IMPLEMENTACAO_LIBERACAO_WHATSAPP.md, secao "Impor a regra no banco".
+-- Veja docs/IMPLEMENTACAO_LIBERACAO_WHATSAPP.md, secao "Impor a regra no banco".
 
 IF OBJECT_ID('dbo.LIBERACAO_WHATSAPP', 'U') IS NULL
 BEGIN

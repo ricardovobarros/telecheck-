@@ -4,13 +4,13 @@ O `NOOB` é uma cópia. O telecheck- e o SACI que estão rodando hoje apontam pa
 
 Os dois têm de apontar para **o mesmo** banco. A liberação gravada pelo telecheck- fica em `dbo.LIBERACAO_WHATSAPP`. O SACI grava o cliente em `dbo.CLIENTE`. Se um falar com a mãe e o outro com o `NOOB`, o código aprovado não encontra o cadastro.
 
-Não coloque senha neste arquivo nem no git. A senha do telecheck- fica só em `db/config.env`. A do SACI fica só em `C:\Arquivos Saci\conexao.udl`.
+Não coloque senha neste arquivo nem no git. A senha do telecheck- fica só em `config.env`. A do SACI fica só em `C:\Arquivos Saci\conexao.udl`.
 
 ## Onde cada um lê o banco hoje
 
 | Quem | Arquivo | O que está valendo |
 | --- | --- | --- |
-| telecheck- | `db/config.env`, chave `DB_ODBC_CONNECTION_STRING` | `SERVER=server-sz2;DATABASE=NOOB` |
+| telecheck- | `config.env`, chave `DB_ODBC_CONNECTION_STRING` | `SERVER=server-sz2;DATABASE=NOOB` |
 | SACI (o exe) | `C:\Arquivos Saci\conexao.udl` | `Data Source=server-sz2;Initial Catalog=NOOB` |
 | Código Delphi | `saci/UDM.dfm` | `FILE NAME=C:\Arquivos Saci\conexao.udl` |
 
@@ -70,7 +70,7 @@ A primeira consulta pode devolver 0. A segunda não pode devolver "permissão ne
 
 ## 3. Apontar o telecheck- para a mãe
 
-Em `db/config.env`, na linha `DB_ODBC_CONNECTION_STRING`, troque só o nome do banco:
+Em `config.env`, na linha `DB_ODBC_CONNECTION_STRING`, troque só o nome do banco:
 
 ```text
 DATABASE=NOOB
@@ -175,7 +175,7 @@ uTelecheck in 'uTelecheck.pas';
 2. Rodar `db/schema.sql` na mãe.
 3. Rodar `db/usuario_restrito.sql` na mãe.
 4. Conferir `CLI_WHATSAPP` e, se o fonte novo for usado, `CLI_FONE_ADICIONAL`.
-5. Trocar `DATABASE=` em `db/config.env` e reiniciar o telecheck-.
+5. Trocar `DATABASE=` em `config.env` e reiniciar o telecheck-.
 6. Fazer um pedido de teste e ver a linha em `NOME_DA_MAE.dbo.LIBERACAO_WHATSAPP`.
 7. Só então trocar `Initial Catalog` no `.udl` do SACI que deve gravar na mãe, e reabrir o exe.
 8. Se houver um segundo fonte, dar a ele um `.udl` próprio antes de compilar.

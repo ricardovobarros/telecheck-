@@ -5,7 +5,7 @@
 -- Rodar como sysadmin, no banco do SACI, depois do db/schema.sql. A senha entra por variavel
 -- do sqlcmd, para nao ficar gravada neste arquivo:
 --   sqlcmd -S server-sz2 -U sysdba -P ... -d NOOB -i db\usuario_restrito.sql -v SENHA="..."
--- A mesma senha vai em PWD= do DB_ODBC_CONNECTION_STRING, em db/config.env.
+-- A mesma senha vai em PWD= do DB_ODBC_CONNECTION_STRING, em `config.env`.
 --
 -- Idempotente: rodar de novo troca a senha e reaplica as permissoes.
 
