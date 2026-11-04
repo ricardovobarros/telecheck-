@@ -86,15 +86,18 @@ def phone_exists(instance: dict, phone: str) -> tuple[int | None, bool | None]:
     """(status, existe) a partir do `isInWhatsapp` do `/chat/check`.
 
     A resposta é uma lista com um item por número pedido, e aqui pedimos um.
-    Item com `error` conta como falha da instância, não como "não tem
-    WhatsApp": a rotação precisa tentar a instância seguinte.
+    HTTP diferente de 200, timeout ou corpo inválido: falha da instância
+    (a rotação tenta a seguinte). HTTP 200 com `error` no item ou
+    `isInWhatsapp: false`: o número não tem WhatsApp.
     """
     status, data = _post(instance, "/chat/check", {"numbers": [phone]})
     if status != 200 or not isinstance(data, list) or not data:
         return status, None
     item = data[0]
-    if not isinstance(item, dict) or item.get("error"):
+    if not isinstance(item, dict):
         return status, None
+    if item.get("error"):
+        return status, False
     existe = item.get("isInWhatsapp")
     return status, existe if isinstance(existe, bool) else None
 

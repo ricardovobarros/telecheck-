@@ -171,7 +171,7 @@ O envio do código para a gestora é a exceção: usa **sempre a primeira instâ
 4. A primeira resposta **HTTP 200** define o resultado: `exists: true` ou `exists: false`.
 5. Se nenhuma instância responder 200, devolve **503** (número único) ou marca o item com erro (lista).
 
-`exists: false` é resposta válida (o número não tem WhatsApp). Não é erro. No uazapi, um item que volta com `error` conta como **falha da instância**, não como "não tem WhatsApp": a rotação tenta a seguinte.
+`exists: false` é resposta válida (o número não tem WhatsApp). Não é erro. No uazapi, HTTP 200 com `error` no item também vira `exists: false`. HTTP diferente de 200, timeout ou 429 continuam como falha da instância.
 
 #### Como as instâncias giram
 

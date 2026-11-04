@@ -242,7 +242,7 @@ POST {base_url}/send/text     {"number": "{numero}", "text": "…"}
 Header: token: {token}
 ```
 
-O `/chat/check` responde uma **lista**, um item por número pedido, e aqui pedimos um por chamada para manter a rotação de instâncias. O `isInWhatsapp` do primeiro item é o `exists`. Item que volta com `error` conta como **falha da instância**, não como "não tem WhatsApp", e a rotação tenta a seguinte. O mesmo vale para o HTTP **429** de limite de chamadas.
+O `/chat/check` responde uma **lista**, um item por número pedido, e aqui pedimos um por chamada para manter a rotação de instâncias. O `isInWhatsapp` do primeiro item é o `exists`. HTTP 200 com `error` no item vira `exists: false` (número sem WhatsApp). HTTP diferente de 200, timeout ou **429** continuam como falha da instância, e a rotação tenta a seguinte.
 
 O resto — sorteio, ordem em loop, pausa de 0,5 a 1 s, failover e os códigos HTTP — é idêntico nos dois provedores: está em `whatsapp_client.py`, fora do código de cada um.
 
