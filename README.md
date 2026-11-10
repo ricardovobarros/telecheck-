@@ -161,7 +161,7 @@ Os dois arquivos de instâncias podem ficar no disco ao mesmo tempo. Só o do pr
 
 O código que conhece cada provedor está em `zapi_client.py` e `uazapi_client.py`. Tudo o que é comum — ler o config, sortear, girar a ordem, a pausa e o failover — está em `whatsapp_client.py`, e é idêntico para os dois.
 
-O envio do código para a gestora é a exceção: usa **sempre a primeira instância** do `instances.json` do provedor ativo, sem sorteio, sem pausa e sem failover, para ela receber todo código do mesmo número. Se essa instância falhar, o `/override/request` devolve **503** e não tenta outra.
+O envio do código para a gestora percorre o `instances.json` do provedor ativo na ordem do arquivo, sem sorteio e sem pausa. Começa na primeira instância válida. Se ela não responder 200, tenta a seguinte, e para na primeira que entregar. Se a lista inteira falhar, o `/override/request` devolve **503**.
 
 ### `/whatscheck`
 

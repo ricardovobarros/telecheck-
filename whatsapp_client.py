@@ -117,24 +117,25 @@ def whatscheck(phone: str, rotation: InstanceRotation | None = None) -> bool:
 
 
 def send_text(phone: str, message: str) -> dict:
-    """Manda a mensagem sempre pela primeira instância do provedor configurado.
+    """Manda a mensagem à gestora pela lista do provedor, na ordem do arquivo.
 
-    Sem sorteio e sem failover: a gestora recebe todo código do mesmo número.
-    Se essa instância não responder 200, RuntimeError, e não se tenta outra.
+    Começa na primeira instância válida. Se ela não responder 200, tenta a
+    seguinte, até uma entregar ou a lista acabar. Sem sorteio e sem pausa.
+    Se nenhuma entregar, RuntimeError.
     """
     modulo = provider()
     instances = modulo.load_instances()
     if not instances:
         raise RuntimeError(MESSAGE_NONE)
-    instance = instances[0]
-    status, data = modulo.send_text(instance, phone, message)
-    if status != 200 or data is None:
-        raise RuntimeError(MESSAGE_NONE)
-    return {
-        "provider": modulo.NAME,
-        "instance": instance["name"],
-        "message_id": data.get("message_id"),
-    }
+    for instance in instances:
+        status, data = modulo.send_text(instance, phone, message)
+        if status == 200 and data is not None:
+            return {
+                "provider": modulo.NAME,
+                "instance": instance["name"],
+                "message_id": data.get("message_id"),
+            }
+    raise RuntimeError(MESSAGE_NONE)
 
 
 _load_config()
